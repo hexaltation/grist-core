@@ -28,6 +28,7 @@ import {Holder, Observable, subscribe} from 'grainjs';
 import {Computed, Disposable, dom, DomArg, DomElementArg} from 'grainjs';
 import {makeT} from 'app/client/lib/localization';
 import {logTelemetryEvent} from 'app/client/lib/telemetry';
+import {DocumentType} from 'app/common/UserAPI';
 
 // tslint:disable:no-console
 
@@ -84,7 +85,6 @@ export interface DocPageModel {
   isTutorialTrunk: Observable<boolean>;
   isTutorialFork: Observable<boolean>;
   isTemplate: Observable<boolean>;
-
   type: Observable<DocumentType|null>;
   importSources: ImportSource[];
 
@@ -144,6 +144,8 @@ export class DocPageModelImpl extends Disposable implements DocPageModel {
     (use, doc) => doc ? doc.isTutorialFork : false);
   public readonly isTemplate = Computed.create(this, this.currentDoc,
     (use, doc) => doc ? doc.isTemplate : false);
+  public readonly type = Computed.create(this, this.currentDoc,
+    (use, doc) => doc?.type?? null);
 
   public readonly importSources: ImportSource[] = [];
 

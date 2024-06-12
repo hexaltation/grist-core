@@ -28,8 +28,9 @@ import {EngineCode} from 'app/common/DocumentSettings';
 import {commonUrls, GristLoadConfig} from 'app/common/gristUrls';
 import {not, propertyCompare} from 'app/common/gutil';
 import {getCurrency, locales} from 'app/common/Locales';
-import {Computed, Disposable, dom, fromKo, IDisposableOwner, makeTestId, observable, Observable, styled} from 'grainjs';
+import {Computed, Disposable, dom, fromKo, IDisposableOwner, makeTestId, Observable, styled} from 'grainjs';
 import * as moment from 'moment-timezone';
+import {DocumentType} from 'app/common/UserAPI';
 
 const t = makeT('DocumentSettings');
 const testId = makeTestId('test-settings-');
@@ -59,8 +60,6 @@ export class DocSettingsPage extends Disposable {
     const canChangeEngine = getSupportedEngineChoices().length > 0;
     const docPageModel = this._gristDoc.docPageModel;
     const isTimingOn = this._gristDoc.isTimingOn;
-    const typeModel = observable(null);
-    docPageModel.getDocType().then((type) => typeModel.set(type));
 
     return cssContainer(
       dom.create(AdminSection, t('Document Settings'), [
@@ -197,8 +196,8 @@ export class DocSettingsPage extends Disposable {
           id: 'document-type',
           name: t('Document type'),
           description: t('Convert the document'),
-        })
-        // value: dom.create(buildTypeSelect, this._type),
+          value: dom.create(buildTypeSelect, docPageModel.type),
+        }),
       ]),
     );
   }
@@ -304,7 +303,10 @@ export class DocSettingsPage extends Disposable {
   }
 }
 
-
+function persistType(type: string|null){
+  //TODO patch db
+  return 123;
+}
 
 function getApiConsoleLink(docPageModel: DocPageModel) {
   const url = new URL(location.href);
@@ -351,10 +353,10 @@ function buildLocaleSelect(
 
 function buildTypeSelect(
   owner: IDisposableOwner,
-  type: KoSaveableObservable<string>
+  type: Observable<DocumentType|null>
 ) {
   const typeList: ACSelectItem[] = [{
-    value: '',
+    value: null,
     label: t('Regular')
   }, {
     value: 'template',
@@ -364,12 +366,12 @@ function buildTypeSelect(
     value: 'tutorial',
     label: t('Tutorial')
   }].map((el) => el.label.trim().toLowerCase());
-  const valueObs = Computed.create(owner, use => use(type));
+  const valueObs = Computed.create(owner, use => use(type)===null ? "": use(type) as string);
   const acIndex = new ACIndexImpl<LocaleItem>(typeList, {maxResults: 200, keepOrder: true});
   return buildACSelect(owner, {
     acIndex, valueObs,
     save(_value, item: ACSelectItem|undefined) {
-      type.saveOnly(item?.value ?? '').catch(reportError);
+      persistType("");
     }
   });
 }
