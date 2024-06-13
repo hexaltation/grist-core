@@ -196,7 +196,7 @@ export class DocSettingsPage extends Disposable {
           id: 'document-type',
           name: t('Document type'),
           description: t('Convert the document'),
-          value: dom.create(buildTypeSelect, docPageModel.type),
+          value: dom.create(buildTypeSelect, docPageModel.type, docPageModel.currentDocId.get()),
         }),
       ]),
     );
@@ -303,9 +303,13 @@ export class DocSettingsPage extends Disposable {
   }
 }
 
-function persistType(type: string|null){
-  fetch('/o/docs/api/docs/', {method:'PATCH', body:JSON.stringify({type})});
-  return;
+function persistType(type: string|null, docId: string|undefined){
+  return fetch(`/o/docs/api/docs/${docId}`,
+    { method:'PATCH',
+      headers: {"Content-Type": "application/json"},
+      credentials: 'include',
+      body:JSON.stringify({type})
+    }).catch((err)=>{ console.log(err); });
 }
 
 function getApiConsoleLink(docPageModel: DocPageModel) {
@@ -355,7 +359,8 @@ type DocumentTypeItem = ACSelectItem & {type?: string};
 
 function buildTypeSelect(
   owner: IDisposableOwner,
-  type: Observable<DocumentType|null>
+  type: Observable<DocumentType|null>,
+  id: string|undefined,
 ) {
   const typeList: DocumentTypeItem[] = [{
     label: t('Regular'),
@@ -374,7 +379,7 @@ function buildTypeSelect(
   }));
   const typeObs = Computed.create(owner, use => {
     const typeCode = use(type)??"";
-    const typeName = typeList.find(t => t.type === typeCode)?.label || typeCode;
+    const typeName = typeList.find(ty => ty.type === typeCode)?.label || typeCode;
     return typeName;
   });
   const acIndex = new ACIndexImpl<DocumentTypeItem>(typeList, {maxResults: 200, keepOrder: true});
@@ -382,7 +387,9 @@ function buildTypeSelect(
     acIndex, valueObs: typeObs,
     save(_value, item: DocumentTypeItem | undefined) {
       if (!item) { throw new Error("Invalid DocumentType"); }
-      persistType(item.type!);
+      persistType(item.type!, id)
+        .then(()=>window.location.reload())
+        .catch(err=>console.log(err));
     }
   });
 }
