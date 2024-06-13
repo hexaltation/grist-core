@@ -304,8 +304,8 @@ export class DocSettingsPage extends Disposable {
 }
 
 function persistType(type: string|null){
-  //TODO patch db
-  return 123;
+  fetch('/o/docs/api/docs/', {method:'PATCH', body:JSON.stringify({type})});
+  return;
 }
 
 function getApiConsoleLink(docPageModel: DocPageModel) {
@@ -351,27 +351,38 @@ function buildLocaleSelect(
   );
 }
 
+type DocumentTypeItem = ACSelectItem & {type?: string};
+
 function buildTypeSelect(
   owner: IDisposableOwner,
   type: Observable<DocumentType|null>
 ) {
-  const typeList: ACSelectItem[] = [{
-    value: null,
-    label: t('Regular')
+  const typeList: DocumentTypeItem[] = [{
+    label: t('Regular'),
+    type: ''
   }, {
-    value: 'template',
-    label: t('Template')
+    label: t('Template'),
+    type: 'template'
   },
   {
-    value: 'tutorial',
-    label: t('Tutorial')
-  }].map((el) => el.label.trim().toLowerCase());
-  const valueObs = Computed.create(owner, use => use(type)===null ? "": use(type) as string);
-  const acIndex = new ACIndexImpl<LocaleItem>(typeList, {maxResults: 200, keepOrder: true});
+    label: t('Tutorial'),
+    type: 'tutorial'
+  }].map((el) => ({
+    ...el,
+    value: el.label,
+    cleanText: el.label.trim().toLowerCase()
+  }));
+  const typeObs = Computed.create(owner, use => {
+    const typeCode = use(type)??"";
+    const typeName = typeList.find(t => t.type === typeCode)?.label || typeCode;
+    return typeName;
+  });
+  const acIndex = new ACIndexImpl<DocumentTypeItem>(typeList, {maxResults: 200, keepOrder: true});
   return buildACSelect(owner, {
-    acIndex, valueObs,
-    save(_value, item: ACSelectItem|undefined) {
-      persistType("");
+    acIndex, valueObs: typeObs,
+    save(_value, item: DocumentTypeItem | undefined) {
+      if (!item) { throw new Error("Invalid DocumentType"); }
+      persistType(item.type!);
     }
   });
 }
