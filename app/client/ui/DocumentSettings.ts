@@ -304,6 +304,7 @@ export class DocSettingsPage extends Disposable {
 }
 
 function persistType(type: string|null, docId: string|undefined){
+  docId = docId?.split("~")[0];
   return fetch(`/o/docs/api/docs/${docId}`,
     { method:'PATCH',
       headers: {"Content-Type": "application/json"},
